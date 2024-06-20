@@ -1,4 +1,4 @@
-FROM osrf/ros:humble-desktop AS base
+FROM arm64v8/ros:humble-perception-jammy AS base
 
 ARG USERNAME=orca4
 ARG USER_UID=1000
@@ -43,8 +43,8 @@ RUN apt-get update \
     libxext6 \
     libx11-6 \
   && rm -rf /var/lib/apt/lists/* \
-ENV NVIDIA_VISIBLE_DEVICES=all
-ENV NVIDIA_DRIVER_CAPABILITIES=graphics,utility,compute
+# ENV NVIDIA_VISIBLE_DEVICES=all
+# ENV NVIDIA_DRIVER_CAPABILITIES=graphics,utility,compute
 ENV QT_X11_NO_MITSHM=1
 
 # Install some ardupilot and ardupilot_gazebo prereqs
