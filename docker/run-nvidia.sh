@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+#
+# Use this one if you have an NVIDIA GPU
+#
 
 XAUTH=/tmp/.docker.xauth
 if [ ! -f $XAUTH ]
@@ -15,16 +18,20 @@ then
     chmod a+r $XAUTH
 fi
 
+# Specific for NVIDIA drivers, required for OpenGL >= 3.3
 docker run -it \
     --rm \
     --name orca4 \
     -e DISPLAY \
     -e QT_X11_NO_MITSHM=1 \
     -e XAUTHORITY=$XAUTH \
+    -e NVIDIA_VISIBLE_DEVICES=all \
+    -e NVIDIA_DRIVER_CAPABILITIES=all \
     -v "$XAUTH:$XAUTH" \
     -v "/tmp/.X11-unix:/tmp/.X11-unix" \
     -v "/etc/localtime:/etc/localtime:ro" \
     -v "/dev/input:/dev/input" \
     --privileged \
     --security-opt seccomp=unconfined \
+    --gpus all \
     orca4:latest
