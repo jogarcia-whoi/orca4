@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+#
+# Use this one if you have an NVIDIA GPU
+#
+
 XAUTH=/tmp/.docker.xauth
 if [ ! -f $XAUTH ]
 then
@@ -21,12 +25,14 @@ docker run -it \
     -e DISPLAY \
     -e QT_X11_NO_MITSHM=1 \
     -e XAUTHORITY=$XAUTH \
+    -e NVIDIA_VISIBLE_DEVICES=all \
+    -e NVIDIA_DRIVER_CAPABILITIES=all \
     -v "$XAUTH:$XAUTH" \
     -v "/tmp/.X11-unix:/tmp/.X11-unix" \
     -v "/etc/localtime:/etc/localtime:ro" \
     -v "/dev/input:/dev/input" \
-    -v "/home/parallels/projects/orca4/orca_bringup/cfg/sub.parm:/home/orca4/colcon_ws/src/orca4/orca_bringup/cfg/sub.parm:ro" \
-    -e LIBGL_ALWAYS_SOFTWARE=1  \
+    -v "${PWD}:/home/orca4/colcon_ws/src/orca4:ro" \
     --privileged \
     --security-opt seccomp=unconfined \
+    --gpus all \
     orca4:latest

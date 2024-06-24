@@ -25,6 +25,8 @@ docker run -it \
     -v "/tmp/.X11-unix:/tmp/.X11-unix" \
     -v "/etc/localtime:/etc/localtime:ro" \
     -v "/dev/input:/dev/input" \
+    -v "${PWD}:/home/orca4/colcon_ws/src/orca4:ro" \
+    -e LIBGL_ALWAYS_SOFTWARE=1  \
     --privileged \
     --security-opt seccomp=unconfined \
     orca4:latest
