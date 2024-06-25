@@ -35,9 +35,13 @@ base_controller:
     z_accel: 0.5
     yaw_accel: 1.0
 
+    use_depth_for_scale: true
+    min_depth_for_scale: 0.1  # Minimum depth to use for scaling (to avoid division by zero)
+    max_depth_for_scale: 100.0  # Maximum depth to use for scaling (to avoid unrealistic values)
+
 # Params for orb_slam2 nodes:
 
-orb_slam2_stereo:
+orb_slam2_mono:
   ros__parameters:
     use_sim_time: False
 
@@ -69,3 +73,4 @@ orb_slam2_stereo:
     ThDepth: 40.0
     depth_map_factor: 1.0
     camera_baseline: 171.0  # Right camera info p[3], flip sign
+    use_external_depth: true  # Flag to indicate that external depth should be used for scale

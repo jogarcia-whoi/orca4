@@ -50,8 +50,7 @@ def generate_launch_description():
     rviz_file = os.path.join(orca_bringup_dir, 'cfg', 'sim_launch.rviz')
     world_file = os.path.join(orca_description_dir, 'worlds', 'sand.world')
 
-    sim_left_ini = os.path.join(orca_bringup_dir, 'cfg', 'sim_left.ini')
-    sim_right_ini = os.path.join(orca_bringup_dir, 'cfg', 'sim_right.ini')
+    sim_camera_ini = os.path.join(orca_bringup_dir, 'cfg', 'sim_camera.ini')
     return LaunchDescription([
         DeclareLaunchArgument(
             'ardusub',
@@ -116,8 +115,8 @@ def generate_launch_description():
                 '/model/orca4/odometry',
                 '/motion',
                 '/odom',
-                '/orb_slam2_stereo_node/pose',
-                '/orb_slam2_stereo_node/status',
+                '/orb_slam2_mono_node/pose',
+                '/orb_slam2_mono_node/status',
                 '/pid_z',
                 '/rosout',
                 '/tf',
@@ -165,7 +164,7 @@ def generate_launch_description():
         Node(
             package='ros_gz_image',
             executable='image_bridge',
-            arguments=['stereo_left', 'stereo_right'],
+            arguments=['mono_camera'],
             output='screen',
         ),
 
@@ -173,32 +172,16 @@ def generate_launch_description():
         Node(
             package='orca_base',
             executable='camera_info_publisher',
-            name='left_info_publisher',
+            name='mono_info_publisher',
             output='screen',
             parameters=[{
-                'camera_info_url': 'file://' + sim_left_ini,
-                'camera_name': 'stereo_left',
-                'frame_id': 'stereo_left_frame',
+                'camera_info_url': 'file://' + sim_camera_ini,
+                'camera_name': 'mono_camera',
+                'frame_id': 'mono_camera_frame',
                 'timer_period_ms': 50,
             }],
             remappings=[
-                ('/camera_info', '/stereo_left/camera_info'),
-            ],
-        ),
-
-        Node(
-            package='orca_base',
-            executable='camera_info_publisher',
-            name='right_info_publisher',
-            output='screen',
-            parameters=[{
-                'camera_info_url': 'file://' + sim_right_ini,
-                'camera_name': 'stereo_right',
-                'frame_id': 'stereo_right_frame',
-                'timer_period_ms': 50,
-            }],
-            remappings=[
-                ('/camera_info', '/stereo_right/camera_info'),
+                ('/camera_info', '/mono_camera/camera_info'),
             ],
         ),
 

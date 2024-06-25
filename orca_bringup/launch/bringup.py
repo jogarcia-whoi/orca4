@@ -120,8 +120,8 @@ def generate_launch_description():
             name='manager',
             parameters=[orca_params_file],
             remappings=[
-                # Topic is hard coded in orb_slam2_ros to /orb_slam2_stereo_node/pose
-                ('/camera_pose', '/orb_slam2_stereo_node/pose'),
+                # Topic is hard coded in orb_slam2_ros to /orb_slam2_mono_node/pose
+                ('/camera_pose', '/orb_slam2_mono_node/pose'),
             ],
             condition=IfCondition(LaunchConfiguration('base')),
         ),
@@ -134,8 +134,8 @@ def generate_launch_description():
             name='base_controller',
             parameters=[orca_params_file],
             remappings=[
-                # Topic is hard coded in orb_slam2_ros to /orb_slam2_stereo_node/pose
-                ('/camera_pose', '/orb_slam2_stereo_node/pose'),
+                # Topic is hard coded in orb_slam2_ros to /orb_slam2_mono_node/pose
+                ('/camera_pose', '/orb_slam2_mono_node/pose'),
             ],
             condition=IfCondition(LaunchConfiguration('base')),
         ),
@@ -189,16 +189,15 @@ def generate_launch_description():
         # orb_slam2: build a map of 3d points, localize against the map, and publish the camera pose
         Node(
             package='orb_slam2_ros',
-            executable='orb_slam2_ros_stereo',
+            executable='orb_slam2_ros_mono',
             output='screen',
-            name='orb_slam2_stereo',
+            name='orb_slam2_mono',
             parameters=[orca_params_file, {
                 'voc_file': orb_voc_file,
             }],
             remappings=[
-                ('/image_left/image_color_rect', '/stereo_left'),
-                ('/image_right/image_color_rect', '/stereo_right'),
-                ('/camera/camera_info', '/stereo_right/camera_info'),
+                ('/camera/image_raw', '/mono_camera'),
+                ('/camera/camera_info', '/mono_camera/camera_info'),
             ],
             condition=IfCondition(LaunchConfiguration('slam')),
         ),

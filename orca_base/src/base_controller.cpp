@@ -84,6 +84,12 @@ class BaseController : public rclcpp::Node
            state_ == State::RUN_NOT_LOCALIZED;
   }
 
+  // For scaling mono SLAM with depth (pressure)
+  double current_depth_ = 0.0;
+  bool use_depth_for_scale_;
+  double min_depth_for_scale_;
+  double max_depth_for_scale_;
+
   // We are in control
   bool conn_{false};
 
@@ -271,6 +277,8 @@ class BaseController : public rclcpp::Node
   {
     if (state_ != State::BOOT) {
       ardu_pose_ = *msg;
+      current_depth_ = -msg->pose.position.z;  // Note the negative sign, as depth is typically positive downwards
+
       if (state_ == State::RUN_LOCALIZED) {
         // The entire pose is usable
         auto tf_map_base = orca::pose_msg_to_transform(ardu_pose_.pose);
@@ -296,6 +304,16 @@ class BaseController : public rclcpp::Node
 
     if (running()) {
       auto tf_orb_cam = orca::pose_msg_to_transform(msg->pose);
+      
+      if (use_depth_for_scale_) {
+        // Clamp the depth value to the specified range
+        double scale_depth = std::clamp(current_depth_, min_depth_for_scale_, max_depth_for_scale_);
+        
+        // Scale the translation based on the current depth
+        tf2::Vector3 scaled_translation = tf_orb_cam.getOrigin() * (scale_depth / std::abs(tf_orb_cam.getOrigin().z()));
+        tf_orb_cam.setOrigin(scaled_translation);
+      }
+      
       auto tf_slam_base = tf_slam_down_ * tf_orb_cam * tf_cam_base_;
 
       if (state_ == State::RUN_NO_MAP) {
@@ -360,6 +378,11 @@ public:
     (void) conn_srv_;
     (void) ardu_pose_sub_;
     (void) timer_;
+
+    // Declare and get the new parameters
+    use_depth_for_scale_ = this->declare_parameter<bool>("use_depth_for_scale", true);
+    min_depth_for_scale_ = this->declare_parameter<double>("min_depth_for_scale", 0.1);
+    max_depth_for_scale_ = this->declare_parameter<double>("max_depth_for_scale", 100.0);
 
     init_parameters();
 
