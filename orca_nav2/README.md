@@ -1,3 +1,47 @@
+# Diagram
+
+```mermaid
+sequenceDiagram
+    participant MR as Mission Runner
+    participant BT as Behavior Tree
+    participant P as Planner
+    participant C as Controller
+    participant GC as Goal Checker
+    participant PC as Progress Checker
+    participant BC as Base Controller
+    participant SLAM as SLAM
+    participant T as Thrusters
+
+    MR->>BT: Send nav goal[1]
+    BT->>P: Request path[2]
+    P->>BT: Return 3D path[3]
+    loop Until goal reached
+        BT->>C: Follow path[4]
+        C->>BC: Publish vel cmds[5]
+        SLAM->>BC: Publish pose[6]
+        BC->>T: Publish RC override[7]
+        BC->>BT: Publish motion and odometry[8]
+        BT->>GC: Check goal[9]
+        BT->>PC: Check progress[10]
+        GC->>BT: Goal status[11]
+        PC->>BT: Progress status[12]
+    end
+    BT->>MR: Goal reached[13]
+```
+1. [Mission Runner: Send nav goal](https://github.com/WHOIGit/orca4/blob/main/orca_bringup/scripts/mission_runner.py#L155)
+2. [Behavior Tree: Request path](https://github.com/WHOIGit/orca4/blob/main/orca_bringup/behavior_trees/orca4_bt.xml#L12)
+3. [Planner: Return 3D path](https://github.com/WHOIGit/orca4/blob/main/orca_nav2/src/straight_line_planner_3d.cpp#L164)
+4. [Behavior Tree: Follow path](https://github.com/WHOIGit/orca4/blob/main/orca_bringup/behavior_trees/orca4_bt.xml#L14)
+5. [Controller: Publish vel cmds](https://github.com/WHOIGit/orca4/blob/main/orca_nav2/src/pure_pursuit_controller_3d.cpp#L165)
+6. [SLAM: Publish pose](https://github.com/WHOIGit/orca4/blob/main/orca_base/src/base_controller.cpp#L270)
+7. [Base Controller: Publish RC override](https://github.com/WHOIGit/orca4/blob/main/orca_base/src/base_controller.cpp#L191)
+8. [Base Controller: Publish motion and odometry](https://github.com/WHOIGit/orca4/blob/main/orca_base/src/base_controller.cpp#L238)
+9. [Behavior Tree: Check goal](https://github.com/WHOIGit/orca4/blob/main/orca_bringup/behavior_trees/orca4_bt.xml#L17)
+10. [Progress Checker: Check progress (internal to Nav2)](https://github.com/WHOIGit/orca4/blob/main/orca_nav2/src/progress_checker_3d.cpp#L69)
+11. [Goal Checker: Goal status](https://github.com/WHOIGit/orca4/blob/main/orca_nav2/src/goal_checker_3d.cpp#76)
+12. [Progress Checker: Progress status](https://github.com/WHOIGit/orca4/blob/main/orca_nav2/src/progress_checker_3d.cpp#L69)
+13. [Mission Runner: Goal reached](https://github.com/WHOIGit/orca4/blob/main/orca_bringup/scripts/mission_runner.py#L112)
+
 # Orca4 Nav2 Plugins
 
 The following Nav2 plugins provide basic 3D planning and control suitable for open water. They all
