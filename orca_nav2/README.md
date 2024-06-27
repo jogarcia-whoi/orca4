@@ -3,44 +3,62 @@
 ```mermaid
 sequenceDiagram
     participant MR as Mission Runner
+    participant OM as Orca Manager
     participant BT as Behavior Tree
+    box Nav2 Plugins
     participant P as Planner
-    participant C as Controller
+    participant C3D as Controller 3D
     participant GC as Goal Checker
     participant PC as Progress Checker
-    participant BC as Base Controller
-    participant SLAM as SLAM
-    participant T as Thrusters
-
-    MR->>BT: Send nav goal[1]
-    BT->>P: Request path[2]
-    P->>BT: Return 3D path[3]
-    loop Until goal reached
-        BT->>C: Follow path[4]
-        C->>BC: Publish vel cmds[5]
-        SLAM->>BC: Publish pose[6]
-        BC->>T: Publish RC override[7]
-        BC->>BT: Publish motion and odometry[8]
-        BT->>GC: Check goal[9]
-        BT->>PC: Check progress[10]
-        GC->>BT: Goal status[11]
-        PC->>BT: Progress status[12]
     end
-    BT->>MR: Goal reached[13]
+    participant BC as Base Controller
+    participant MA as MAVROS/ArduSub
+
+    MR->>MR: Define waypoints[1]
+    MR->>OM: Set AUV mode[2]
+    OM->>MA: Set ALT_HOLD mode[3]
+    OM->>BC: Enable control[4]
+    MR->>BT: Send waypoints[5]
+    BT->>P: Request path[6]
+    P->>BT: Return 3D path[7]
+    loop Until all waypoints reached
+        BT->>C3D: Follow path[8]
+        C3D->>BC: Publish vel cmds[9]
+        BC->>BC: Read SLAM pose[10]
+        BC->>MA: Publish RC override[11]
+        MA->>BC: Publish local position[12]
+        MA->>OM: Publish vehicle state[13]
+        BC->>BT: Publish motion and odometry[14]
+        BT->>GC: Check goal[15]
+        Note over BT,PC: Progress Checker used internally[16]
+        GC->>BT: Goal status[17]
+    end
+    BT->>MR: All waypoints reached[18]
+    MR->>OM: Set ROV mode[19]
+    OM->>MA: Set MANUAL mode[20]
+    OM->>BC: Disable control[21]
 ```
-1. [Mission Runner: Send nav goal](https://github.com/WHOIGit/orca4/blob/main/orca_bringup/scripts/mission_runner.py#L155)
-2. [Behavior Tree: Request path](https://github.com/WHOIGit/orca4/blob/main/orca_bringup/behavior_trees/orca4_bt.xml#L12)
-3. [Planner: Return 3D path](https://github.com/WHOIGit/orca4/blob/main/orca_nav2/src/straight_line_planner_3d.cpp#L164)
-4. [Behavior Tree: Follow path](https://github.com/WHOIGit/orca4/blob/main/orca_bringup/behavior_trees/orca4_bt.xml#L14)
-5. [Controller: Publish vel cmds](https://github.com/WHOIGit/orca4/blob/main/orca_nav2/src/pure_pursuit_controller_3d.cpp#L165)
-6. [SLAM: Publish pose](https://github.com/WHOIGit/orca4/blob/main/orca_base/src/base_controller.cpp#L270)
-7. [Base Controller: Publish RC override](https://github.com/WHOIGit/orca4/blob/main/orca_base/src/base_controller.cpp#L191)
-8. [Base Controller: Publish motion and odometry](https://github.com/WHOIGit/orca4/blob/main/orca_base/src/base_controller.cpp#L238)
-9. [Behavior Tree: Check goal](https://github.com/WHOIGit/orca4/blob/main/orca_bringup/behavior_trees/orca4_bt.xml#L17)
-10. [Progress Checker: Check progress (internal to Nav2)](https://github.com/WHOIGit/orca4/blob/main/orca_nav2/src/progress_checker_3d.cpp#L69)
-11. [Goal Checker: Goal status](https://github.com/WHOIGit/orca4/blob/main/orca_nav2/src/goal_checker_3d.cpp#76)
-12. [Progress Checker: Progress status](https://github.com/WHOIGit/orca4/blob/main/orca_nav2/src/progress_checker_3d.cpp#L69)
-13. [Mission Runner: Goal reached](https://github.com/WHOIGit/orca4/blob/main/orca_bringup/scripts/mission_runner.py#L112)
+1. [Mission Runner: Define waypoints](https://github.com/WHOIGit/orca4/blob/main/orca_bringup/scripts/mission_runner.py#L73)
+2. [Mission Runner: Set AUV mode](https://github.com/WHOIGit/orca4/blob/main/orca_bringup/scripts/mission_runner.py#L153)
+3. [Orca Manager: Set ALT_HOLD mode](https://github.com/WHOIGit/orca4/blob/main/orca_base/src/manager.cpp#L186)
+4. [Orca Manager: Enable control](https://github.com/WHOIGit/orca4/blob/main/orca_base/src/manager.cpp#L190)
+5. [Mission Runner: Send nav goal](https://github.com/WHOIGit/orca4/blob/main/orca_bringup/scripts/mission_runner.py#L155)
+6. [Behavior Tree: Request path](https://github.com/WHOIGit/orca4/blob/main/orca_bringup/behavior_trees/orca4_bt.xml#L12)
+7. [Planner: Return 3D path](https://github.com/WHOIGit/orca4/blob/main/orca_nav2/src/straight_line_planner_3d.cpp#L164)
+8. [Behavior Tree: Follow path](https://github.com/WHOIGit/orca4/blob/main/orca_bringup/behavior_trees/orca4_bt.xml#L14)
+9. [Controller: Publish vel cmds](https://github.com/WHOIGit/orca4/blob/main/orca_nav2/src/pure_pursuit_controller_3d.cpp#L165)
+10. [Base Controller: Read SLAM pose](https://github.com/WHOIGit/orca4/blob/main/orca_base/src/base_controller.cpp#L293)
+11. [Base Controller: Publish RC override](https://github.com/WHOIGit/orca4/blob/main/orca_base/src/base_controller.cpp#L191)
+12. [MAVROS/ArduSub: Publish local position](https://github.com/WHOIGit/orca4/blob/main/orca_base/src/base_controller.cpp#L270)
+13. [MAVROS/ArduSub: Publish vehicle state](https://github.com/WHOIGit/orca4/blob/main/orca_base/src/manager.cpp#L444)
+14. [Base Controller: Publish motion and odometry](https://github.com/WHOIGit/orca4/blob/main/orca_base/src/base_controller.cpp#L238)
+15. [Behavior Tree: Check goal](https://github.com/WHOIGit/orca4/blob/main/orca_bringup/behavior_trees/orca4_bt.xml#L17)
+16. [Progress Checker: Check progress (internal to Nav2)](https://github.com/WHOIGit/orca4/blob/main/orca_nav2/src/progress_checker_3d.cpp#L69)
+17. [Goal Checker: Goal status](https://github.com/WHOIGit/orca4/blob/main/orca_nav2/src/goal_checker_3d.cpp#L76)
+18. [Mission Runner: Goal reached](https://github.com/WHOIGit/orca4/blob/main/orca_bringup/scripts/mission_runner.py#L112)
+19. [Mission Runner: Set ROV mode](https://github.com/WHOIGit/orca4/blob/main/orca_bringup/scripts/mission_runner.py#L158)
+20. [Orca Manager: Set MANUAL mode](https://github.com/WHOIGit/orca4/blob/main/orca_base/src/manager.cpp#L258)
+21. [Orca Manager: Disable control](https://github.com/WHOIGit/orca4/blob/main/orca_base/src/manager.cpp#L226)
 
 # Orca4 Nav2 Plugins
 
