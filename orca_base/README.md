@@ -6,6 +6,71 @@
 * 2 IMUs on the [Pixhawk](https://ardupilot.org/copter/docs/common-pixhawk-overview.html)
 * A down-facing stereo camera
 
+## Diagram
+
+```mermaid
+sequenceDiagram
+    participant C as Cameras
+    participant ORB as ORB_SLAM2
+    participant BC as Base Controller
+    participant MA as MAVROS/ArduSub
+    participant S as Sensors (IMUs/Bar30)
+    participant BT as Behavior Tree
+
+    Note over BC: Initial State: RUN_NO_MAP
+
+    par SLAM Loop
+        loop Continuous operation
+            C->>ORB: Publish stereo images[1]
+            ORB->>ORB: Process stereo images[2]
+            ORB->>BC: Publish camera pose[3]
+            alt First SLAM pose
+                BC->>BC: Set map -> slam transform[4]
+                BC->>BC: Transition to RUN_LOCALIZED[5]
+            else Subsequent poses
+                alt Successful localization
+                    BC->>BC: Use existing map -> slam transform[6]
+                else Localization expires
+                    BC->>BC: Transition to RUN_NOT_LOCALIZED[7]
+                end
+            end
+            alt Re-localization occurs
+                ORB->>BC: Publish matching camera pose[8]
+                BC->>BC: Transition back to RUN_LOCALIZED[9]
+            end
+        end
+    and Base Controller Timer Loop (20Hz)
+        loop Every 50ms
+            BC->>MA: Publish vision pose[10]
+            BC->>BC: Publish transforms[11]
+            BC->>MA: Publish commands[12]
+            BC->>BT: Publish odometry[13]
+        end
+    and MAVROS/ArduSub Loop
+        loop Continuous operation
+            S->>MA: Provide sensor data[14]
+            MA->>MA: Fuse vision and sensor data[15]
+            MA->>BC: Publish fused local position[16]
+        end
+    end
+```
+1. [Cameras: Publish stereo images](https://github.com/WHOIGit/orca4/blob/main/orca_bringup/launch/sim_launch.py#L165)
+2. [ORB_SLAM2: Process stereo images, detect ORB features](https://github.com/WHOIGit/orca4/blob/main/orca_bringup/launch/bringup.py#L190)
+3. [ORB_SLAM2: Publish camera pose on /orb_slam2_stereo_node/pose](https://github.com/WHOIGit/orca4/blob/main/orca_base/src/base_controller.cpp#L293)
+4. [Base Controller: Set tf_map_slam_ for first SLAM pose](https://github.com/WHOIGit/orca4/blob/main/orca_base/src/base_controller.cpp#L304)
+5. [Base Controller: Transition to RUN_LOCALIZED](https://github.com/WHOIGit/orca4/blob/main/orca_base/src/base_controller.cpp#L312)
+6. Base Controller: Use existing tf_map_slam_ for subsequent poses
+7. [Base Controller: Transition to RUN_NOT_LOCALIZED if last SLAM expires](https://github.com/WHOIGit/orca4/blob/main/orca_base/src/base_controller.cpp#L263)
+8. [ORB_SLAM2: Publish matching camera pose](https://github.com/WHOIGit/orca4/blob/main/orca_base/src/base_controller.cpp#L293)
+9. [Base Controller: Transition back to RUN_LOCALIZED](https://github.com/WHOIGit/orca4/blob/main/orca_base/src/base_controller.cpp#L312)
+10. [Base Controller: Publish vision pose on /mavros/vision_pose/pose](https://github.com/WHOIGit/orca4/blob/main/orca_base/src/base_controller.cpp#L170)
+11. [Base Controller: Publish transforms](https://github.com/WHOIGit/orca4/blob/main/orca_base/src/base_controller.cpp#L248)
+12. [Base Controller: Publish commands](https://github.com/WHOIGit/orca4/blob/main/orca_base/src/base_controller.cpp#L191)
+13. [Base Controller: Publish odometry](https://github.com/WHOIGit/orca4/blob/main/orca_base/src/base_controller.cpp#L254)
+14. Sensors: Provide IMU and barometer data to MAVROS/ArduSub
+15. MAVROS/ArduSub: Fuse vision pose with sensor data
+16. [MAVROS/ArduSub: Publish fused local position on /mavros/local_position/pose](https://github.com/WHOIGit/orca4/blob/main/orca_base/src/base_controller.cpp#L270)
+
 ## Current Use Cases
 
 ORB_SLAM2 detects and manages a single continuous map of ORB features.
