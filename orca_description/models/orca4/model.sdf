@@ -12,12 +12,12 @@
         <pose>0 0 0.011 0 0 0</pose>
         <mass>10</mass>
         <inertia>
-          <ixx>0.09873097998042396</ixx>
+          <ixx>0.05</ixx>
           <ixy>0</ixy>
           <ixz>0</ixz>
-          <iyy>0.17756847998042397</iyy>
+          <iyy>0.09</iyy>
           <iyz>0</iyz>
-          <izz>0.2692441666666667</izz>
+          <izz>0.13</izz>
         </inertia>
       </inertial>
 
@@ -65,19 +65,19 @@
       <mDotQ>0</mDotQ>
       <nDotR>0</nDotR>
       <!-- First order stability derivative: -->
-      <xU>0</xU>
-      <yV>0</yV>
-      <zW>0</zW>
-      <kP>0</kP>
-      <mQ>0</mQ>
-      <nR>0</nR>
+      <xU>-20</xU>
+      <yV>-20</yV>
+      <zW>-20</zW>
+      <kP>-5</kP>
+      <mQ>-5</mQ>
+      <nR>-5</nR>
       <!-- Second order stability derivative: -->
-      <xUabsU>-33.800000000000004</xUabsU>
-      <yVabsV>-54.26875</yVabsV>
-      <zWabsW>-73.37135</zWabsW>
-      <kPabsP>-4.0</kPabsP>
-      <mQabsQ>-4.0</mQabsQ>
-      <nRabsR>-4.0</nRabsR>
+      <xUabsU>-50</xUabsU>
+      <yVabsV>-70</yVabsV>
+      <zWabsW>-90</zWabsW>
+      <kPabsP>-8.0</kPabsP>
+      <mQabsQ>-8.0</mQabsQ>
+      <nRabsR>-8.0</nRabsR>
     </plugin>
 
     <link name="thruster1">
