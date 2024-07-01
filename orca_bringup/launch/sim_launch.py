@@ -212,6 +212,15 @@ def generate_launch_description():
             output='screen'
         ),
 
+        # Python package for extending project
+        Node(
+            package='orca_extend',
+            executable='example_node',
+            output='screen',
+            name='example_node',
+            parameters=[orca_params_file]
+        ),
+
         # Bring up Orca and Nav2 nodes
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(os.path.join(orca_bringup_dir, 'launch', 'bringup.py')),
