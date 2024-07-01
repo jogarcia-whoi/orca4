@@ -43,6 +43,7 @@ RUN apt-get update \
     libegl1 \
     libxext6 \
     libx11-6 \
+    libzbar0 \
     nano \
   && rm -rf /var/lib/apt/lists/* \
 ENV NVIDIA_VISIBLE_DEVICES=all
