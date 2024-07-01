@@ -22,6 +22,7 @@ RUN apt-get update \
     sudo \
     wget \
     vim \
+    ~nros-humble-rqt* \
   && rm -rf /var/lib/apt/lists/*
 
 # Install Gazebo Garden
@@ -32,7 +33,6 @@ RUN apt-get update \
     gz-garden \
   && rm -rf /var/lib/apt/lists/*
 
-# Install NVIDIA software
 RUN apt-get update \
  && apt-get -y --quiet --no-install-recommends install \
     x11-apps \
@@ -42,9 +42,8 @@ RUN apt-get update \
     libegl1 \
     libxext6 \
     libx11-6 \
+    nano \
   && rm -rf /var/lib/apt/lists/* \
-# ENV NVIDIA_VISIBLE_DEVICES=all
-# ENV NVIDIA_DRIVER_CAPABILITIES=graphics,utility,compute
 ENV QT_X11_NO_MITSHM=1
 
 # Install some ardupilot and ardupilot_gazebo prereqs
@@ -54,6 +53,9 @@ RUN apt-get update \
     rapidjson-dev \
     xterm \
   && rm -rf /var/lib/apt/lists/*
+
+# Install the required Python packages
+RUN pip3 install opencv-python pyzbar
 
 # Create a non-root user
 # Required for ArduSub install, but generally a good idea
