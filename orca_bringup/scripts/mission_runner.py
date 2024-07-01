@@ -23,7 +23,7 @@
 # SOFTWARE.
 
 """
-Run the "huge loop" mission
+Run the "huge loop" mission with QR code detection
 
 Code inspired by https://github.com/ros2/ros2cli/blob/rolling/ros2action/ros2action/verb/send_goal.py
 
@@ -34,19 +34,19 @@ Usage:
 from enum import Enum
 
 import rclpy
-import rclpy.logging
+from rclpy.node import Node
 from action_msgs.msg import GoalStatus
 from geometry_msgs.msg import Point, Pose, PoseStamped
 from nav2_msgs.action import FollowWaypoints
 from orca_msgs.action import TargetMode
 from rclpy.action import ActionClient
-from std_msgs.msg import Header
+from std_msgs.msg import Header, String
 
 
 class SendGoalResult(Enum):
     SUCCESS = 0     # Goal succeeded
     FAILURE = 1     # Goal failed
-    CANCELED = 2    # Goal canceled (KeyboardInterrupt exception)
+    CANCELED = 2    # Goal canceled (KeyboardInterrupt exception or QR code detected)
 
 
 def make_pose(x: float, y: float, z: float):
@@ -79,97 +79,110 @@ for _ in range(2):
     delay_loop.poses.append(make_pose(x=0.0, y=0.0, z=-7.0))
 
 
-# Send a goal to an action server and wait for the result.
-# Cancel the goal if the user hits ^C (KeyboardInterrupt).
-def send_goal(node, action_client, send_goal_msg) -> SendGoalResult:
-    goal_handle = None
+class MissionRunner(Node):
+    def __init__(self):
+        super().__init__('mission_runner')
+        self.set_target_mode = ActionClient(self, TargetMode, '/set_target_mode')
+        self.follow_waypoints = ActionClient(self, FollowWaypoints, '/follow_waypoints')
+        self.qr_subscription = self.create_subscription(
+            String,
+            '/qr_code_detected',
+            self.qr_callback,
+            10)
+        self.qr_code_detected = False
 
-    try:
-        action_client.wait_for_server()
+    def qr_callback(self, msg):
+        self.get_logger().info(f'QR Code detected: {msg.data}')
+        self.qr_code_detected = True
 
-        print('Sending goal...')
-        goal_future = action_client.send_goal_async(send_goal_msg)
-        rclpy.spin_until_future_complete(node, goal_future)
-        goal_handle = goal_future.result()
+    def send_goal(self, action_client, send_goal_msg) -> SendGoalResult:
+        goal_handle = None
 
-        if goal_handle is None:
-            raise RuntimeError('Exception while sending goal: {!r}'.format(goal_future.exception()))
+        try:
+            action_client.wait_for_server()
 
-        if not goal_handle.accepted:
-            print('Goal rejected')
-            return SendGoalResult.FAILURE
+            print('Sending goal...')
+            goal_future = action_client.send_goal_async(send_goal_msg)
+            rclpy.spin_until_future_complete(self, goal_future)
+            goal_handle = goal_future.result()
 
-        print('Goal accepted with ID: {}'.format(bytes(goal_handle.goal_id.uuid).hex()))
-        result_future = goal_handle.get_result_async()
-        rclpy.spin_until_future_complete(node, result_future)
+            if goal_handle is None:
+                raise RuntimeError('Exception while sending goal: {!r}'.format(goal_future.exception()))
 
-        result = result_future.result()
+            if not goal_handle.accepted:
+                print('Goal rejected')
+                return SendGoalResult.FAILURE
 
-        if result is None:
-            raise RuntimeError('Exception while getting result: {!r}'.format(result_future.exception()))
+            print('Goal accepted with ID: {}'.format(bytes(goal_handle.goal_id.uuid).hex()))
+            result_future = goal_handle.get_result_async()
 
-        print('Goal completed')
-        return SendGoalResult.SUCCESS
+            while rclpy.ok():
+                rclpy.spin_once(self)
+                if result_future.done():
+                    break
+                if self.qr_code_detected:
+                    goal_handle.cancel_goal_async()
+                    return SendGoalResult.CANCELED
 
-    except KeyboardInterrupt:
-        # Cancel the goal if it's still active
-        # TODO(clyde): this seems to work, but a second exception is generated -- why?
-        if (goal_handle is not None and
-                (GoalStatus.STATUS_ACCEPTED == goal_handle.status or
-                 GoalStatus.STATUS_EXECUTING == goal_handle.status)):
-            print('Canceling goal...')
-            cancel_future = goal_handle.cancel_goal_async()
-            rclpy.spin_until_future_complete(node, cancel_future)
-            cancel_response = cancel_future.result()
+            result = result_future.result()
 
-            if cancel_response is None:
-                raise RuntimeError('Exception while canceling goal: {!r}'.format(cancel_future.exception()))
+            if result is None:
+                raise RuntimeError('Exception while getting result: {!r}'.format(result_future.exception()))
 
-            if len(cancel_response.goals_canceling) == 0:
-                raise RuntimeError('Failed to cancel goal')
-            if len(cancel_response.goals_canceling) > 1:
-                raise RuntimeError('More than one goal canceled')
-            if cancel_response.goals_canceling[0].goal_id != goal_handle.goal_id:
-                raise RuntimeError('Canceled goal with incorrect goal ID')
+            print('Goal completed')
+            return SendGoalResult.SUCCESS
 
-            print('Goal canceled')
-            return SendGoalResult.CANCELED
+        except KeyboardInterrupt:
+            if (goal_handle is not None and
+                    (GoalStatus.STATUS_ACCEPTED == goal_handle.status or
+                     GoalStatus.STATUS_EXECUTING == goal_handle.status)):
+                print('Canceling goal...')
+                cancel_future = goal_handle.cancel_goal_async()
+                rclpy.spin_until_future_complete(self, cancel_future)
+                cancel_response = cancel_future.result()
 
+                if cancel_response is None:
+                    raise RuntimeError('Exception while canceling goal: {!r}'.format(cancel_future.exception()))
 
-def main():
-    node = None
-    set_target_mode = None
-    follow_waypoints = None
+                if len(cancel_response.goals_canceling) == 0:
+                    raise RuntimeError('Failed to cancel goal')
+                if len(cancel_response.goals_canceling) > 1:
+                    raise RuntimeError('More than one goal canceled')
+                if cancel_response.goals_canceling[0].goal_id != goal_handle.goal_id:
+                    raise RuntimeError('Canceled goal with incorrect goal ID')
 
-    rclpy.init()
+                print('Goal canceled')
+                return SendGoalResult.CANCELED
 
-    try:
-        node = rclpy.create_node("mission_runner")
-
-        set_target_mode = ActionClient(node, TargetMode, '/set_target_mode')
-        follow_waypoints = ActionClient(node, FollowWaypoints, '/follow_waypoints')
-
+    def run_mission(self):
         print('>>> Setting mode to AUV <<<')
-        if send_goal(node, set_target_mode, go_auv) == SendGoalResult.SUCCESS:
+        if self.send_goal(self.set_target_mode, go_auv) == SendGoalResult.SUCCESS:
             print('>>> Executing mission <<<')
-            send_goal(node, follow_waypoints, delay_loop)
+            result = self.send_goal(self.follow_waypoints, delay_loop)
+
+            if result == SendGoalResult.CANCELED:
+                print('>>> QR Code found, mission complete <<<')
+            else:
+                print('>>> Mission complete, returning home <<<')
+                self.send_goal(self.follow_waypoints, go_home)
 
             print('>>> Setting mode to ROV <<<')
-            send_goal(node, set_target_mode, go_rov)
+            self.send_goal(self.set_target_mode, go_rov)
 
             print('>>> Mission complete <<<')
         else:
             print('>>> Failed to set mode to AUV, quit <<<')
 
-    finally:
-        if set_target_mode is not None:
-            set_target_mode.destroy()
-        if follow_waypoints is not None:
-            follow_waypoints.destroy()
-        if node is not None:
-            node.destroy_node()
 
-    rclpy.shutdown()
+def main():
+    rclpy.init()
+
+    try:
+        mission_runner = MissionRunner()
+        mission_runner.run_mission()
+    finally:
+        mission_runner.destroy_node()
+        rclpy.shutdown()
 
 
 if __name__ == '__main__':

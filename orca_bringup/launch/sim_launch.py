@@ -215,9 +215,9 @@ def generate_launch_description():
         # Python package for extending project
         Node(
             package='orca_extend',
-            executable='example_node',
+            executable='qr_code_detector',
             output='screen',
-            name='example_node',
+            name='qr_code_detector',
             parameters=[orca_params_file]
         ),
 
