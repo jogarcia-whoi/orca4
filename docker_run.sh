@@ -29,4 +29,4 @@ docker run -it \
     -e LIBGL_ALWAYS_SOFTWARE=1  \
     --privileged \
     --security-opt seccomp=unconfined \
-    orca4:latest
+    whoi/orca4:amd64

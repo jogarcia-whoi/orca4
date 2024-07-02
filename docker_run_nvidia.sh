@@ -35,4 +35,4 @@ docker run -it \
     --privileged \
     --security-opt seccomp=unconfined \
     --gpus all \
-    orca4:latest
+    whoi/orca4:amd64
