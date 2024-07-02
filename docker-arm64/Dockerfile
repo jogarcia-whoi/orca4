@@ -53,10 +53,9 @@ RUN apt-get update \
     python3-wxgtk4.0 \
     rapidjson-dev \
     xterm \
+    libgstreamer1.0-dev \
+    libgstreamer-plugins-base1.0-dev \
   && rm -rf /var/lib/apt/lists/*
-
-# Install the required Python packages
-RUN pip3 install opencv-python pyzbar
 
 # Create a non-root user
 # Required for ArduSub install, but generally a good idea
@@ -90,7 +89,8 @@ RUN modules/waf/waf-light configure --board sitl \
 
 # Clone ardupilot_gazebo code
 WORKDIR /home/$USERNAME
-RUN git clone https://github.com/ArduPilot/ardupilot_gazebo.git
+# This repo doesn't use tags, so we use a commit hash for stability
+RUN git clone https://github.com/ArduPilot/ardupilot_gazebo.git && cd ardupilot_gazebo && git reset --hard 986e216
 
 # Build for Gazebo Garden, define this before building ardupilot_gazebo and ros_gz
 ENV GZ_VERSION=garden
@@ -154,6 +154,9 @@ COPY --chown=$USER_UID:$USER_GID . src/orca4
 RUN [ "/bin/bash" , "-c" , "\
   source /opt/ros/humble/setup.bash \
   && colcon build" ]
+
+# Install the required Python packages
+RUN pip3 install opencv-python pyzbar
 
 # Set up the environment
 WORKDIR /home/$USERNAME/colcon_ws
