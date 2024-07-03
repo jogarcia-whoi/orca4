@@ -17,7 +17,8 @@ setup(
     maintainer_email='orca4@todo.todo',
     description='TODO: Package description',
     license='MIT',
-    tests_require=['pytest'],
+    tests_require=['pytest', 'pytest-mock'],
+    test_suite='pytest',
     entry_points={
         'console_scripts': [
             'example_node = orca_extend.example_node:main'
