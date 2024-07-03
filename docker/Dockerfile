@@ -157,7 +157,7 @@ RUN [ "/bin/bash" , "-c" , "\
   && colcon build" ]
 
 # Install the required Python packages
-RUN pip3 install opencv-python pyzbar
+RUN pip3 install opencv-python pyzbar pytest-mock
 
 # Set up the environment
 WORKDIR /home/$USERNAME/colcon_ws
