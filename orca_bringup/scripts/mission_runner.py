@@ -48,6 +48,11 @@ class SendGoalResult(Enum):
     FAILURE = 1     # Goal failed
     CANCELED = 2    # Goal canceled (KeyboardInterrupt exception)
 
+LANE_SPACING = 1.0
+AREA_W = 25.0
+AREA_H = 5.0
+
+
 
 def make_pose(x: float, y: float, z: float):
     return PoseStamped(header=Header(frame_id='map'), pose=Pose(position=Point(x=x, y=y, z=z)))
@@ -70,13 +75,41 @@ dive = FollowWaypoints.Goal()
 dive.poses.append(make_pose(x=0.0, y=0.0, z=-8.0))
 
 # Big loop, will eventually result in a loop closure
-delay_loop = FollowWaypoints.Goal()
-delay_loop.poses.append(make_pose(x=0.0, y=0.0, z=-7.0))
-for _ in range(2):
-    delay_loop.poses.append(make_pose(x=20.0, y=-13.0, z=-7.0))
-    delay_loop.poses.append(make_pose(x=10.0, y=-23.0, z=-7.0))
-    delay_loop.poses.append(make_pose(x=-10.0, y=-8.0, z=-7.0))
-    delay_loop.poses.append(make_pose(x=0.0, y=0.0, z=-7.0))
+lawnmower = FollowWaypoints.Goal()
+lawnmower.poses.append(make_pose(x=0.0, y=0.0, z=-7.0))
+
+# calc waypoints
+num_waypoints = ((AREA_W // LANE_SPACING) + 1) * 2
+print("Num of waypoints: {}".format(num_waypoints))
+
+# TODO: Go to start point
+
+# start pattern
+bot_x_pos = 0.0
+bot_y_pos = 0.0
+
+y_offset = AREA_H * 1.0
+for wp in range(int(num_waypoints)):
+    if wp == 0:
+        bot_y_pos = AREA_H
+        lawnmower.poses.append(make_pose(x=bot_x_pos, y=bot_y_pos, z=-7.0))
+        print("{}, {}, {}, {}".format(bot_x_pos, bot_y_pos, wp, y_offset))
+    elif wp % 2 != 0:
+        bot_x_pos += LANE_SPACING
+        lawnmower.poses.append(make_pose(x=bot_x_pos, y=bot_y_pos, z=-7.0))
+        print("{}, {}, {}, {}".format(bot_x_pos, bot_y_pos, wp, y_offset))
+    else:
+        y_offset *= -1.0
+        bot_y_pos += y_offset
+        lawnmower.poses.append(make_pose(x=bot_x_pos, y=bot_y_pos, z=-7.0))
+        print("{}, {}, {}, {}".format(bot_x_pos, bot_y_pos, wp, y_offset))
+
+# for _ in range(2):
+#    delay_loop.poses.append(makej
+#    delay_loop.poses.append(make_pose(x=10.0, y=-23.0, z=-7.0))
+#    delay_loop.poses.append(make_pose(x=-10.0, y=-8.0, z=-7.0))
+#    delay_loop.poses.append(make_pose(x=0.0, y=0.0, z=-7.0))
+
 
 
 # Send a goal to an action server and wait for the result.
@@ -152,7 +185,7 @@ def main():
         print('>>> Setting mode to AUV <<<')
         if send_goal(node, set_target_mode, go_auv) == SendGoalResult.SUCCESS:
             print('>>> Executing mission <<<')
-            send_goal(node, follow_waypoints, delay_loop)
+            send_goal(node, follow_waypoints, lawnmower)
 
             print('>>> Setting mode to ROV <<<')
             send_goal(node, set_target_mode, go_rov)
