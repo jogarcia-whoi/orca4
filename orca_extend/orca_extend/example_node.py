@@ -1,6 +1,6 @@
 import rclpy
 from rclpy.node import Node
-from sensor_msgs.msg import CompressedImage
+from sensor_msgs.msg import Image
 from geometry_msgs.msg import PoseStamped
 from std_msgs.msg import String
 import cv2
@@ -14,12 +14,13 @@ class ExampleNode(Node):
         timer_period = 0.5  # seconds
         self.timer = self.create_timer(timer_period, self.timer_callback)
         self.i = 0
-        self.rightCamSub = self.create_subscription(CompressedImage,
-            '/stereo_right/compressed',
+        self.rightCamSub = self.create_subscription(Image,
+            '/stereo_right',
             self.handle_right_cam_msg,
             10)
-        self.posSub = self.create_subscription(PoseStamped, '/mavros/local_position/pose', self.handle_loc_msg, 10)
         self.pos = (0,0,0)
+        self.posSub = self.create_subscription(PoseStamped, '/mavros/local_position/pose', self.handle_loc_msg, 10)
+        
 
     def timer_callback(self):
         msg = String()
