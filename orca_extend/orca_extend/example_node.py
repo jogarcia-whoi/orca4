@@ -33,6 +33,7 @@ class ExampleNode(Node):
         self.i += 1
     
     def handle_loc_msg(self, msg):
+        logger.error("[INFO] FIRST HANDLE LOC MSG CALLED, LOC at {}{}{}".format(self.pos[0], self.pos[1], self.pos[2]))
         self.pos = (msg.pose.position.x, msg.pose.position.y, msg.pose.position.z)
         logger.error("[INFO] HANDLE LOC MSG CALLED, LOC at {}{}{}".format(self.pos[0], self.pos[1], self.pos[2]))
 
