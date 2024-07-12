@@ -41,18 +41,30 @@ from nav2_msgs.action import FollowWaypoints
 from orca_msgs.action import TargetMode
 from rclpy.action import ActionClient
 from std_msgs.msg import Header
+from rcl_interfaces.srv import GetParameters
+from rclpy.node import Node
 
+import sys
+
+# A simple client that queries the base_controller node for the values of the lawnmower params that we need.
+# Adapted from https://daobook.github.io/ros2-docs/xin/Tutorials/Writing-A-Simple-Py-Service-And-Client.html
+class ParamGetter(Node):
+    def __init__(self):
+        super().__init__('ParamGetter')
+        self.cli = self.create_client(GetParameters, '/base_controller/get_parameters')
+        while not self.cli.wait_for_service(timeout_sec=5.0):
+            print("WAITING FOR SERVICE")
+            self.get_logger().info('service not available, waiting again...')
+        self.req = GetParameters.Request()
+
+    def send_request(self):
+        self.req.names = ["area_h","area_w","lane_spacing"]
+        self.future = self.cli.call_async(self.req)
 
 class SendGoalResult(Enum):
     SUCCESS = 0     # Goal succeeded
     FAILURE = 1     # Goal failed
     CANCELED = 2    # Goal canceled (KeyboardInterrupt exception)
-
-LANE_SPACING = 1.0
-AREA_W = 25.0
-AREA_H = 5.0
-
-
 
 def make_pose(x: float, y: float, z: float):
     return PoseStamped(header=Header(frame_id='map'), pose=Pose(position=Point(x=x, y=y, z=z)))
@@ -77,40 +89,6 @@ dive.poses.append(make_pose(x=0.0, y=0.0, z=-8.0))
 # Big loop, will eventually result in a loop closure
 lawnmower = FollowWaypoints.Goal()
 lawnmower.poses.append(make_pose(x=0.0, y=0.0, z=-7.0))
-
-# calc waypoints
-num_waypoints = ((AREA_W // LANE_SPACING) + 1) * 2
-print("Num of waypoints: {}".format(num_waypoints))
-
-# TODO: Go to start point
-
-# start pattern
-bot_x_pos = 0.0
-bot_y_pos = 0.0
-
-y_offset = AREA_H * 1.0
-for wp in range(int(num_waypoints)):
-    if wp == 0:
-        bot_y_pos = AREA_H
-        lawnmower.poses.append(make_pose(x=bot_x_pos, y=bot_y_pos, z=-7.0))
-        print("{}, {}, {}, {}".format(bot_x_pos, bot_y_pos, wp, y_offset))
-    elif wp % 2 != 0:
-        bot_x_pos += LANE_SPACING
-        lawnmower.poses.append(make_pose(x=bot_x_pos, y=bot_y_pos, z=-7.0))
-        print("{}, {}, {}, {}".format(bot_x_pos, bot_y_pos, wp, y_offset))
-    else:
-        y_offset *= -1.0
-        bot_y_pos += y_offset
-        lawnmower.poses.append(make_pose(x=bot_x_pos, y=bot_y_pos, z=-7.0))
-        print("{}, {}, {}, {}".format(bot_x_pos, bot_y_pos, wp, y_offset))
-
-# for _ in range(2):
-#    delay_loop.poses.append(makej
-#    delay_loop.poses.append(make_pose(x=10.0, y=-23.0, z=-7.0))
-#    delay_loop.poses.append(make_pose(x=-10.0, y=-8.0, z=-7.0))
-#    delay_loop.poses.append(make_pose(x=0.0, y=0.0, z=-7.0))
-
-
 
 # Send a goal to an action server and wait for the result.
 # Cancel the goal if the user hits ^C (KeyboardInterrupt).
@@ -173,12 +151,58 @@ def main():
     node = None
     set_target_mode = None
     follow_waypoints = None
+    
+    LANE_SPACING = 0.0
+    AREA_W = 0.0
+    AREA_H = 0.0
 
     rclpy.init()
 
     try:
         node = rclpy.create_node("mission_runner")
 
+        ## Get Parameters that we need to build the lawnmower pattern
+        minimal_client = ParamGetter()
+        minimal_client.send_request()
+        rclpy.spin_once(minimal_client)
+        if minimal_client.future.done():
+            try:
+                response = minimal_client.future.result()
+            except Exception as e:
+                minimal_client.get_logger().info('Service call failed %r' % (e,))
+            else:
+                print("Parameters obtained")
+                AREA_H = response.values[0].double_value
+                AREA_W = response.values[1].double_value
+                LANE_SPACING = response.values[2].double_value
+
+        ## Create Lawnmower pattern
+        
+        # calc waypoints
+        num_waypoints = ((AREA_W // LANE_SPACING) + 1) * 2
+        print("Num of waypoints: {}".format(num_waypoints))
+        # TODO: Go to start point
+        # start pattern
+        bot_x_pos = 0.0
+        bot_y_pos = 0.0
+        
+        y_offset = AREA_H * 1.0
+        for wp in range(int(num_waypoints)):
+            if wp == 0:
+                bot_y_pos = AREA_H
+                lawnmower.poses.append(make_pose(x=bot_x_pos, y=bot_y_pos, z=-7.0))
+                print("{}, {}, {}, {}".format(bot_x_pos, bot_y_pos, wp, y_offset))
+            elif wp % 2 != 0:
+                bot_x_pos += LANE_SPACING
+                lawnmower.poses.append(make_pose(x=bot_x_pos, y=bot_y_pos, z=-7.0))
+                print("{}, {}, {}, {}".format(bot_x_pos, bot_y_pos, wp, y_offset))
+            else:
+                y_offset *= -1.0
+                bot_y_pos += y_offset
+                lawnmower.poses.append(make_pose(x=bot_x_pos, y=bot_y_pos, z=-7.0))
+                print("{}, {}, {}, {}".format(bot_x_pos, bot_y_pos, wp, y_offset))
+
+        ### Creating Action clients
         set_target_mode = ActionClient(node, TargetMode, '/set_target_mode')
         follow_waypoints = ActionClient(node, FollowWaypoints, '/follow_waypoints')
 
