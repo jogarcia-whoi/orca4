@@ -29,7 +29,7 @@ class ExampleNode(Node):
         self.i += 1
     
     def handle_loc_msg(self, msg):
-        self.pos = (msg.Pose.x, msg.Pose.y, msg.Pose.z)
+        self.pos = (msg.pose.position.x, msg.pose.position.y, msg.pose.position.z)
 
 
     def handle_right_cam_msg(self, msg):
