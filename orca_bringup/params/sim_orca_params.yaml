@@ -1,5 +1,6 @@
 # Params for Orca nodes:
 
+
 manager:
   ros__parameters:
     mav_msg_ids: [31, 32]
@@ -7,6 +8,9 @@ manager:
 
 base_controller:
   ros__parameters:
+    area_h: 5.0
+    area_w: 25.0
+    lane_spacing: 1.0
     use_sim_time: False
     timer_rate: 20  # Motion model period
 

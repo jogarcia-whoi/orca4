@@ -47,6 +47,9 @@ namespace orca_base
   CXT_MACRO_MEMBER(y_vel, double, 0.4) \
   CXT_MACRO_MEMBER(z_vel, double, 0.2) \
   CXT_MACRO_MEMBER(yaw_vel, double, 0.4) \
+  CXT_MACRO_MEMBER(area_h, double, 1.0) \
+  CXT_MACRO_MEMBER(area_w, double, 1.0) \
+  CXT_MACRO_MEMBER(lane_spacing, double, 1.0) \
  \
   CXT_MACRO_MEMBER(x_accel, double, 0.4) \
   CXT_MACRO_MEMBER(y_accel, double, 0.4) \
