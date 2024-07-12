@@ -1,7 +1,7 @@
 import rclpy
 from rclpy.node import Node
-from std_msgs import CameraInfo
-from geometry_msgs import Point, Pose, PoseStamped
+from sensor_msgs.msg import CompressedImage
+from geometry_msgs.msg import PoseStamped
 from std_msgs.msg import String
 import cv2
 from cv_bridge import CvBridge
@@ -14,8 +14,8 @@ class ExampleNode(Node):
         timer_period = 0.5  # seconds
         self.timer = self.create_timer(timer_period, self.timer_callback)
         self.i = 0
-        self.rightCamSub = self.create_subscription(CameraInfo,
-            '/stereo_right/camera_info',
+        self.rightCamSub = self.create_subscription(CompressedImage,
+            '/stereo_right/compressed',
             self.handle_right_cam_msg,
             10)
         self.posSub = self.create_subscription(PoseStamped, '/mavros/local_position/pose', self.handle_loc_msg, 10)
@@ -33,9 +33,12 @@ class ExampleNode(Node):
 
 
     def handle_right_cam_msg(self, msg):
+          print("[INFO] HANDLE RIGHT CAM MSG CALLED, LOC at {}{}{}".format(bself.pos.x, self.pos.y, self.pos.z))
           bridge = CvBridge()
           cv_image = bridge.imgmsg_to_cv2(msg, desired_encoding='passthrough')
           barcodes = pyzbar.decode(cv_image)
+
+          print('SHEFALI')
           print(type(barcodes))
           # loop over the detected barcodes
           for barcode in barcodes:
