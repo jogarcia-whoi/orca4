@@ -35,7 +35,7 @@ class ExampleNode(Node):
     def handle_right_cam_msg(self, msg):
           print("[INFO] HANDLE RIGHT CAM MSG CALLED, LOC at {}{}{}".format(self.pos[0], self.pos[1], self.pos[2]))
           bridge = CvBridge()
-          cv_image = bridge.imgmsg_to_cv2(msg, desired_encoding='passthrough')
+          cv_image = bridge.imgmsg_to_cv2(msg, desired_encoding='rgb8')
           barcodes = pyzbar.decode(cv_image)
 
           print('SHEFALI')
