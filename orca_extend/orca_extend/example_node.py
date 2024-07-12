@@ -1,4 +1,5 @@
 import sys
+from venv import logger
 import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import Image
@@ -19,6 +20,7 @@ class ExampleNode(Node):
             '/stereo_right',
             self.handle_right_cam_msg,
             10)
+        self.logger = self.get_logger()
         self.pos = (0,0,0)
         self.posSub = self.create_subscription(PoseStamped, '/mavros/local_position/pose', self.handle_loc_msg, 10)
         
@@ -32,8 +34,7 @@ class ExampleNode(Node):
     
     def handle_loc_msg(self, msg):
         self.pos = (msg.pose.position.x, msg.pose.position.y, msg.pose.position.z)
-        sys.exit(0)
-        print("[INFO] HANDLE LOC MSG CALLED, LOC at {}{}{}".format(self.pos[0], self.pos[1], self.pos[2]))
+        logger.error("[INFO] HANDLE LOC MSG CALLED, LOC at {}{}{}".format(self.pos[0], self.pos[1], self.pos[2]))
 
 
 
